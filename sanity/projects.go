@@ -427,6 +427,74 @@ func (s *ProjectsService) DeleteDataset(ctx context.Context, projectId string, d
 }
 
 // -----------------------------------------------------------------------------
+// Jobs History
+
+const (
+	JobHistoryStatePending     string = "pending"
+	JobHistoryStateRunning     string = "running"
+	JobHistoryStateCompleted   string = "completed"
+	JobHistoryStateTerminating string = "terminating"
+	JobHistoryStateTerminated  string = "terminated"
+	JobHistoryStateFailed      string = "failed"
+)
+
+type ListJobsHistoryRequest struct {
+	// Offset is the desired starting point for the return set.
+	Offset uint
+
+	// Limit is the maximum return size.
+	Limit uint
+
+	// States are the desired job states to filter by. Valid values are
+	// represented as the "JobHistoryState*" constants in this package.
+	States []string
+}
+
+// A Job describes a copy operation between two datasets.
+type Job struct {
+	Id            string    `json:"id"`
+	State         string    `json:"state"`
+	Authors       []string  `json:"authors"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
+	SourceDataset string    `json:"sourceDataset"`
+	TargetDataset string    `json:"targetDataset"`
+	WithHistory   bool      `json:"withHistory"`
+}
+
+// ListJobsHistory fetches and returns a list of copy jobs.
+func (s *ProjectsService) ListJobsHistory(ctx context.Context, projectId string, r *ListJobsHistoryRequest) ([]Job, error) {
+	url := fmt.Sprintf("%s/v2022-04-01/projects/%s/datasets/copy", s.client.baseURL, projectId)
+	hasAppendedArg := false
+
+	if r.Offset > 0 {
+		url += fmt.Sprintf("?offset=%d", r.Offset)
+		hasAppendedArg = true
+	}
+	if r.Limit > 0 {
+		leadingChar := "&"
+		if !hasAppendedArg {
+			leadingChar = "?"
+			hasAppendedArg = true
+		}
+		url += fmt.Sprintf("%slimit=%d", leadingChar, r.Limit)
+	}
+	if len(r.States) > 0 {
+		leadingChar := "&"
+		if !hasAppendedArg {
+			leadingChar = "?"
+			hasAppendedArg = true
+		}
+		url += fmt.Sprintf("%sstate=%s", leadingChar, strings.Join(r.States, ","))
+	}
+
+	var jobs []Job
+	err := do(ctx, s.client.client, url, http.MethodGet, nil, &jobs)
+
+	return jobs, err
+}
+
+// -----------------------------------------------------------------------------
 // Features
 
 // ListActiveFeatures fetches and returns a list of all active features on the
