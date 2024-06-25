@@ -199,7 +199,7 @@ func (r *UpdateProjectRequest) MarshalJSON() ([]byte, error) {
 		req.Metadata["color"] = strings.ToLower(r.Color) // if upper case, API returns a 400
 	}
 	if r.ExternalStudioHost != "" {
-		req.Metadata["externalHost"] = r.ExternalStudioHost
+		req.Metadata["externalStudioHost"] = r.ExternalStudioHost
 	}
 
 	return json.Marshal(req)
