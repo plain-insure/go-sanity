@@ -217,6 +217,23 @@ func (s *ProjectsService) Update(ctx context.Context, projectId string, r *Updat
 	return &project, err
 }
 
+// DeleteExternalStudioHost deletes the configured external studio host URL from the project.
+//
+// This action will appear in the project's activity feed.
+func (s *ProjectsService) DeleteExternalStudioHost(ctx context.Context, projectId string) (*Project, error) {
+	url := fmt.Sprintf("%s/v2021-06-07/projects/%s", s.client.baseURL, projectId)
+	type request struct {
+		Metadata map[string]any `json:"metadata"`
+	}
+
+	r := &request{Metadata: map[string]any{"externalStudioHost": nil}}
+
+	var project Project
+	err := do(ctx, s.client.client, url, http.MethodPatch, r, &project)
+
+	return &project, err
+}
+
 // Delete destroys the project without additional prompt.
 func (s *ProjectsService) Delete(ctx context.Context, projectId string) (bool, error) {
 	url := fmt.Sprintf("%s/v2021-06-07/projects/%s", s.client.baseURL, projectId)
