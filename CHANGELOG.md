@@ -14,7 +14,7 @@ and this project adheres to
 
 ### Fixed
 
-- A bug preventing users from setting esternal studio host when updating a
+- A bug preventing users from setting external studio host when updating a
   project
 
 ## [0.1.0] - 2022-09-21
