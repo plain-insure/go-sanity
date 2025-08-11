@@ -54,7 +54,7 @@ func NewClient(httpClient *http.Client) *Client {
 	}
 	client.common.client = client
 	client.Projects = (*ProjectsService)(&client.common)
-	client.Webhooks = (*WebhooksService)(&client.common)
+	client.Webhooks = &WebhooksService{service: client.common}
 
 	return client
 }

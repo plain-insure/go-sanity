@@ -15,8 +15,8 @@ func TestWebhooksService_List(t *testing.T) {
 		if r.Method != http.MethodGet {
 			t.Errorf("Expected GET method, got %s", r.Method)
 		}
-		if r.URL.Path != "/v2021-06-07/projects/test-project/webhooks" {
-			t.Errorf("Expected /v2021-06-07/projects/test-project/webhooks path, got %s", r.URL.Path)
+		if r.URL.Path != "/hooks/projects/test-project" {
+			t.Errorf("Expected /hooks/projects/test-project path, got %s", r.URL.Path)
 		}
 
 		webhooks := []Webhook{
@@ -26,7 +26,7 @@ func TestWebhooksService_List(t *testing.T) {
 				Dataset:       "production",
 				URL:           "https://example.com/webhook",
 				HttpMethod:    "POST",
-				ApiVersion:    "v2021-06-07",
+				ApiVersion:    "v2025-02-19",
 				IncludeDrafts: false,
 				IsDisabled:    false,
 				CreatedAt:     time.Now(),
@@ -39,9 +39,9 @@ func TestWebhooksService_List(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	// Create a client with the test server URL
+	// Create a client and set test base URL
 	client := NewClient(http.DefaultClient)
-	client.baseURL = ts.URL
+	client.Webhooks.testBaseURL = ts.URL
 
 	// Test the List method
 	ctx := context.Background()
@@ -69,8 +69,8 @@ func TestWebhooksService_Create(t *testing.T) {
 		if r.Method != http.MethodPost {
 			t.Errorf("Expected POST method, got %s", r.Method)
 		}
-		if r.URL.Path != "/v2021-06-07/projects/test-project/webhooks" {
-			t.Errorf("Expected /v2021-06-07/projects/test-project/webhooks path, got %s", r.URL.Path)
+		if r.URL.Path != "/hooks/projects/test-project" {
+			t.Errorf("Expected /hooks/projects/test-project path, got %s", r.URL.Path)
 		}
 
 		// Parse the request body
@@ -102,9 +102,9 @@ func TestWebhooksService_Create(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	// Create a client with the test server URL
+	// Create a client and set test base URL
 	client := NewClient(http.DefaultClient)
-	client.baseURL = ts.URL
+	client.Webhooks.testBaseURL = ts.URL
 
 	// Test the Create method
 	ctx := context.Background()
@@ -112,7 +112,7 @@ func TestWebhooksService_Create(t *testing.T) {
 		Dataset:       "production",
 		URL:           "https://example.com/webhook",
 		HttpMethod:    "POST",
-		ApiVersion:    "v2021-06-07",
+		ApiVersion:    "v2025-02-19",
 		IncludeDrafts: NewBool(true),
 	}
 
