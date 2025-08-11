@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 )
@@ -76,15 +77,27 @@ func do(ctx context.Context, client *http.Client, url string, method string, bod
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode > 299 {
+		// Read the response body to handle both JSON and non-JSON error responses
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("HTTP %d: failed to read error response", resp.StatusCode)
+		}
+
+		// Try to parse as JSON error message first
 		type errorMessage struct {
 			Message string `json:"message"`
 		}
 		var msg errorMessage
-		err = json.NewDecoder(resp.Body).Decode(&msg)
-		if err != nil {
-			return err
+		if json.Unmarshal(body, &msg) == nil && msg.Message != "" {
+			return errors.New(msg.Message)
 		}
-		return errors.New(msg.Message)
+
+		// If not valid JSON or no message field, return the raw response
+		if len(body) > 0 {
+			return fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(body))
+		}
+
+		return fmt.Errorf("HTTP %d", resp.StatusCode)
 	}
 
 	return json.NewDecoder(resp.Body).Decode(result)

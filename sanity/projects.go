@@ -849,3 +849,106 @@ func (s *ProjectsService) DeleteDatasetTag(ctx context.Context, projectId, tagId
 
 	return resp.Deleted, err
 }
+
+// -----------------------------------------------------------------------------
+// Webhooks
+
+// A Webhook represents a webhook configuration for a project.
+type Webhook struct {
+	// Id is the unique identifier for the webhook.
+	Id string `json:"id"`
+
+	// URL is the endpoint where webhook payloads will be sent.
+	URL string `json:"url"`
+
+	// Filter is the GROQ filter that determines which documents trigger the webhook.
+	Filter string `json:"filter,omitempty"`
+
+	// Secret is used to verify webhook payloads.
+	Secret string `json:"secret,omitempty"`
+
+	// IsEnabled indicates whether the webhook is active.
+	IsEnabled bool `json:"isEnabled"`
+
+	// CreatedAt is the time the webhook was created.
+	CreatedAt time.Time `json:"createdAt"`
+
+	// UpdatedAt is the time the webhook was last updated.
+	UpdatedAt time.Time `json:"updatedAt"`
+
+	// ProjectId is the identifier of the project this webhook belongs to.
+	ProjectId string `json:"projectId"`
+}
+
+// ListWebhooks fetches and returns all webhooks for the specified project.
+func (s *ProjectsService) ListWebhooks(ctx context.Context, projectId string) ([]Webhook, error) {
+	url := fmt.Sprintf("%s/v2021-06-07/projects/%s/hooks", s.client.baseURL, projectId)
+
+	var webhooks []Webhook
+	err := do(ctx, s.client.client, url, http.MethodGet, nil, &webhooks)
+
+	return webhooks, err
+}
+
+type CreateWebhookRequest struct {
+	// URL is the endpoint where webhook payloads will be sent.
+	URL string `json:"url"`
+
+	// Filter is the GROQ filter that determines which documents trigger the webhook.
+	Filter string `json:"filter,omitempty"`
+
+	// Secret is used to verify webhook payloads.
+	Secret string `json:"secret,omitempty"`
+
+	// IsEnabled indicates whether the webhook should be active upon creation.
+	IsEnabled *bool `json:"isEnabled,omitempty"`
+}
+
+// CreateWebhook creates a new webhook for the specified project.
+func (s *ProjectsService) CreateWebhook(ctx context.Context, projectId string, r *CreateWebhookRequest) (*Webhook, error) {
+	url := fmt.Sprintf("%s/v2021-06-07/projects/%s/hooks", s.client.baseURL, projectId)
+
+	var webhook Webhook
+	err := do(ctx, s.client.client, url, http.MethodPost, r, &webhook)
+
+	return &webhook, err
+}
+
+type UpdateWebhookRequest struct {
+	// URL is the endpoint where webhook payloads will be sent.
+	URL string `json:"url,omitempty"`
+
+	// Filter is the GROQ filter that determines which documents trigger the webhook.
+	Filter string `json:"filter,omitempty"`
+
+	// Secret is used to verify webhook payloads.
+	Secret string `json:"secret,omitempty"`
+
+	// IsEnabled indicates whether the webhook should be active.
+	IsEnabled *bool `json:"isEnabled,omitempty"`
+}
+
+// UpdateWebhook updates the specified webhook.
+func (s *ProjectsService) UpdateWebhook(ctx context.Context, projectId string, webhookId string, r *UpdateWebhookRequest) (*Webhook, error) {
+	url := fmt.Sprintf("%s/v2021-06-07/projects/%s/hooks/%s", s.client.baseURL, projectId, webhookId)
+
+	var webhook Webhook
+	err := do(ctx, s.client.client, url, http.MethodPatch, r, &webhook)
+
+	return &webhook, err
+}
+
+// DeleteWebhook removes the specified webhook from the project.
+func (s *ProjectsService) DeleteWebhook(ctx context.Context, projectId string, webhookId string) (bool, error) {
+	url := fmt.Sprintf("%s/v2021-06-07/projects/%s/hooks/%s", s.client.baseURL, projectId, webhookId)
+
+	type response struct {
+		Id      string `json:"id"`
+		Deleted bool   `json:"deleted"`
+	}
+
+	var res response
+	err := do(ctx, s.client.client, url, http.MethodDelete, nil, &res)
+
+	return res.Deleted, err
+}
