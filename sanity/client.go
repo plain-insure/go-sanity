@@ -30,6 +30,9 @@ type Client struct {
 	// Projects is the client for the Projects API.
 	Projects *ProjectsService
 
+	// Webhooks is the client for the Webhooks API.
+	Webhooks *WebhooksService
+
 	client *http.Client
 
 	baseURL string
@@ -51,6 +54,7 @@ func NewClient(httpClient *http.Client) *Client {
 	}
 	client.common.client = client
 	client.Projects = (*ProjectsService)(&client.common)
+	client.Webhooks = (*WebhooksService)(&client.common)
 
 	return client
 }
@@ -92,12 +96,8 @@ func do(ctx context.Context, client *http.Client, url string, method string, bod
 			return errors.New(msg.Message)
 		}
 
-		// If not valid JSON or no message field, return the raw response
-		if len(body) > 0 {
-			return fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(body))
-		}
-
-		return fmt.Errorf("HTTP %d", resp.StatusCode)
+		// Fallback to descriptive HTTP error with response body
+		return fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(body))
 	}
 
 	return json.NewDecoder(resp.Body).Decode(result)
