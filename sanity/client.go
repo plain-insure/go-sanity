@@ -29,6 +29,9 @@ type Client struct {
 	// Projects is the client for the Projects API.
 	Projects *ProjectsService
 
+	// Webhooks is the client for the Webhooks API.
+	Webhooks *WebhooksService
+
 	client *http.Client
 
 	baseURL string
@@ -50,6 +53,7 @@ func NewClient(httpClient *http.Client) *Client {
 	}
 	client.common.client = client
 	client.Projects = (*ProjectsService)(&client.common)
+	client.Webhooks = (*WebhooksService)(&client.common)
 
 	return client
 }

@@ -39,12 +39,21 @@ func main() {
 
 	projects, err := client.Projects.List(ctx)
 	// ...
+
+	// List webhooks for a project
+	webhooks, err := client.Webhooks.List(ctx, "projectId")
+	// ...
 }
 ```
 
 To discover your personal auth token, you can run the command
 `sanity debug --secrets` at a terminal. You may then create new tokens via the
 API.
+
+## Supported APIs
+
+- **Projects API**: Manage Sanity projects, datasets, CORS entries, users, roles, and tokens
+- **Webhooks API**: Manage webhook configurations for real-time notifications
 
 ## Code structure
 
