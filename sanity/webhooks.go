@@ -29,11 +29,11 @@ type WebhookRule struct {
 }
 
 // getWebhookBaseURL returns the base URL for webhook operations.
-func (s *WebhooksService) getWebhookBaseURL() string {
+func (s *WebhooksService) getWebhookBaseURL(projectId string) string {
 	if s.testBaseURL != "" {
 		return s.testBaseURL
 	}
-	return fmt.Sprintf("%s/v2025-02-19", s.client.baseURL)
+	return fmt.Sprintf("https://%s.api.sanity.io/v2025-02-19", projectId)
 }
 
 // A Webhook represents a webhook configuration for a Sanity project.
@@ -155,7 +155,7 @@ type UpdateWebhookRequest struct {
 
 // List fetches and returns all webhooks for the specified project.
 func (s *WebhooksService) List(ctx context.Context, projectId string) ([]Webhook, error) {
-	url := fmt.Sprintf("%s/hooks/projects/%s", s.getWebhookBaseURL(), projectId)
+	url := fmt.Sprintf("%s/hooks/projects/%s", s.getWebhookBaseURL(projectId), projectId)
 
 	var webhooks []Webhook
 	err := do(ctx, s.client.client, url, http.MethodGet, nil, &webhooks)
@@ -165,7 +165,7 @@ func (s *WebhooksService) List(ctx context.Context, projectId string) ([]Webhook
 
 // Create generates a new webhook for the specified project.
 func (s *WebhooksService) Create(ctx context.Context, projectId string, r *CreateWebhookRequest) (*Webhook, error) {
-	url := fmt.Sprintf("%s/hooks/projects/%s", s.getWebhookBaseURL(), projectId)
+	url := fmt.Sprintf("%s/hooks/projects/%s", s.getWebhookBaseURL(projectId), projectId)
 
 	var webhook Webhook
 	err := do(ctx, s.client.client, url, http.MethodPost, r, &webhook)
@@ -175,7 +175,7 @@ func (s *WebhooksService) Create(ctx context.Context, projectId string, r *Creat
 
 // Get fetches a webhook by its unique identifier.
 func (s *WebhooksService) Get(ctx context.Context, projectId, webhookId string) (*Webhook, error) {
-	url := fmt.Sprintf("%s/hooks/projects/%s/%s", s.getWebhookBaseURL(), projectId, webhookId)
+	url := fmt.Sprintf("%s/hooks/projects/%s/%s", s.getWebhookBaseURL(projectId), projectId, webhookId)
 
 	var webhook Webhook
 	err := do(ctx, s.client.client, url, http.MethodGet, nil, &webhook)
@@ -185,7 +185,7 @@ func (s *WebhooksService) Get(ctx context.Context, projectId, webhookId string) 
 
 // Update applies the requested changes to the specified webhook.
 func (s *WebhooksService) Update(ctx context.Context, projectId, webhookId string, r *UpdateWebhookRequest) (*Webhook, error) {
-	url := fmt.Sprintf("%s/hooks/projects/%s/%s", s.getWebhookBaseURL(), projectId, webhookId)
+	url := fmt.Sprintf("%s/hooks/projects/%s/%s", s.getWebhookBaseURL(projectId), projectId, webhookId)
 
 	var webhook Webhook
 	err := do(ctx, s.client.client, url, http.MethodPatch, r, &webhook)
@@ -195,7 +195,7 @@ func (s *WebhooksService) Update(ctx context.Context, projectId, webhookId strin
 
 // Delete removes the specified webhook without prompt.
 func (s *WebhooksService) Delete(ctx context.Context, projectId, webhookId string) (bool, error) {
-	url := fmt.Sprintf("%s/hooks/projects/%s/%s", s.getWebhookBaseURL(), projectId, webhookId)
+	url := fmt.Sprintf("%s/hooks/projects/%s/%s", s.getWebhookBaseURL(projectId), projectId, webhookId)
 
 	type response struct {
 		Deleted bool `json:"deleted"`
