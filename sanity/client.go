@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 )
@@ -29,6 +30,9 @@ type Client struct {
 	// Projects is the client for the Projects API.
 	Projects *ProjectsService
 
+	// Webhooks is the client for the Webhooks API.
+	Webhooks *WebhooksService
+
 	client *http.Client
 
 	baseURL string
@@ -50,6 +54,7 @@ func NewClient(httpClient *http.Client) *Client {
 	}
 	client.common.client = client
 	client.Projects = (*ProjectsService)(&client.common)
+	client.Webhooks = &WebhooksService{service: client.common}
 
 	return client
 }
@@ -76,15 +81,23 @@ func do(ctx context.Context, client *http.Client, url string, method string, bod
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode > 299 {
+		// Read the response body to handle both JSON and non-JSON error responses
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("HTTP %d: failed to read error response", resp.StatusCode)
+		}
+
+		// Try to parse as JSON error message first
 		type errorMessage struct {
 			Message string `json:"message"`
 		}
 		var msg errorMessage
-		err = json.NewDecoder(resp.Body).Decode(&msg)
-		if err != nil {
-			return err
+		if json.Unmarshal(body, &msg) == nil && msg.Message != "" {
+			return errors.New(msg.Message)
 		}
-		return errors.New(msg.Message)
+
+		// Fallback to descriptive HTTP error with response body
+		return fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(body))
 	}
 
 	return json.NewDecoder(resp.Body).Decode(result)
