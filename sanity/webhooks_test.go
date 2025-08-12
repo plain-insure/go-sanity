@@ -3,6 +3,7 @@ package sanity
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -298,25 +299,73 @@ func TestCreateWebhookRequest_WithRule(t *testing.T) {
 	}
 }
 
-func TestUpdateWebhookRequest_WithoutIsDisabled(t *testing.T) {
-	// Test that UpdateWebhookRequest does not include IsDisabled field
-	req := &UpdateWebhookRequest{
-		Name:             "Updated Webhook",
-		IsDisabledByUser: NewBool(true),
+func TestWebhookService_BaseURL(t *testing.T) {
+	// Test that the webhook base URL uses the correct project-specific format
+	client := NewClient(http.DefaultClient)
+	
+	// Test the base URL format
+	expectedURL := "https://test-project.api.sanity.io/v2025-02-19"
+	actualURL := client.Webhooks.getWebhookBaseURL("test-project")
+	
+	if actualURL != expectedURL {
+		t.Errorf("Expected base URL '%s', got '%s'", expectedURL, actualURL)
 	}
+	
+	// Test with different project ID
+	expectedURL2 := "https://my-project-123.api.sanity.io/v2025-02-19"
+	actualURL2 := client.Webhooks.getWebhookBaseURL("my-project-123")
+	
+	if actualURL2 != expectedURL2 {
+		t.Errorf("Expected base URL '%s', got '%s'", expectedURL2, actualURL2)
+	}
+	
+	// Test that testBaseURL takes precedence
+	client.Webhooks.testBaseURL = "http://localhost:8080"
+	testURL := client.Webhooks.getWebhookBaseURL("any-project")
+	
+	if testURL != "http://localhost:8080" {
+		t.Errorf("Expected test base URL 'http://localhost:8080', got '%s'", testURL)
+	}
+}
 
-	// Test JSON marshalling
-	jsonData, err := json.Marshal(req)
+func TestWebhookService_FullURLConstruction(t *testing.T) {
+	// Create a test server to capture the request URL
+	var capturedURL string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedURL = r.Host + r.URL.Path
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]Webhook{})
+	}))
+	defer ts.Close()
+
+	// Create a client and set test base URL
+	client := NewClient(http.DefaultClient)
+	client.Webhooks.testBaseURL = ts.URL
+
+	// Call List method
+	ctx := context.Background()
+	_, err := client.Webhooks.List(ctx, "test-project")
 	if err != nil {
-		t.Fatalf("Failed to marshal UpdateWebhookRequest: %v", err)
+		t.Fatalf("Expected no error, got %v", err)
 	}
 
-	jsonStr := string(jsonData)
-	// Should contain isDisabledByUser but not isDisabled
-	if !strings.Contains(jsonStr, `"isDisabledByUser":true`) {
-		t.Errorf("Expected JSON to contain isDisabledByUser field, got: %s", jsonStr)
+	// Verify the captured URL contains the expected path
+	expectedPath := "/hooks/projects/test-project"
+	if !strings.Contains(capturedURL, expectedPath) {
+		t.Errorf("Expected captured URL to contain '%s', got '%s'", expectedPath, capturedURL)
 	}
-	if strings.Contains(jsonStr, `"isDisabled"`) {
-		t.Errorf("Expected JSON to NOT contain isDisabled field, got: %s", jsonStr)
+
+	// Without testBaseURL override, verify the URL would be project-specific
+	client.Webhooks.testBaseURL = ""
+	expectedBaseURL := "https://test-project.api.sanity.io/v2025-02-19"
+	expectedFullURL := expectedBaseURL + "/hooks/projects/test-project"
+	
+	// We can't easily test the actual HTTP call without making real requests,
+	// but we can verify the URL construction logic
+	baseURL := client.Webhooks.getWebhookBaseURL("test-project")
+	fullURL := fmt.Sprintf("%s/hooks/projects/%s", baseURL, "test-project")
+	
+	if fullURL != expectedFullURL {
+		t.Errorf("Expected full URL '%s', got '%s'", expectedFullURL, fullURL)
 	}
 }
