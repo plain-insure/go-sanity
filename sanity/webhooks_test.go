@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -23,6 +24,7 @@ func TestWebhooksService_List(t *testing.T) {
 			{
 				Id:            "webhook1",
 				ProjectId:     "test-project",
+				Name:          "Test Webhook",
 				Dataset:       "production",
 				URL:           "https://example.com/webhook",
 				HttpMethod:    "POST",
@@ -83,6 +85,7 @@ func TestWebhooksService_Create(t *testing.T) {
 		webhook := Webhook{
 			Id:            "new-webhook",
 			ProjectId:     "test-project",
+			Name:          req.Name,
 			Dataset:       req.Dataset,
 			URL:           req.URL,
 			HttpMethod:    req.HttpMethod,
@@ -109,6 +112,7 @@ func TestWebhooksService_Create(t *testing.T) {
 	// Test the Create method
 	ctx := context.Background()
 	req := &CreateWebhookRequest{
+		Name:          "Test Webhook",
 		Dataset:       "production",
 		URL:           "https://example.com/webhook",
 		HttpMethod:    "POST",
@@ -123,6 +127,9 @@ func TestWebhooksService_Create(t *testing.T) {
 
 	if webhook.Id != "new-webhook" {
 		t.Errorf("Expected webhook ID 'new-webhook', got '%s'", webhook.Id)
+	}
+	if webhook.Name != "Test Webhook" {
+		t.Errorf("Expected webhook name 'Test Webhook', got '%s'", webhook.Name)
 	}
 	if webhook.Dataset != "production" {
 		t.Errorf("Expected dataset 'production', got '%s'", webhook.Dataset)
@@ -145,5 +152,54 @@ func TestClient_WebhooksService(t *testing.T) {
 
 	if client.Webhooks.client != client {
 		t.Error("Expected Webhooks service to have reference to client")
+	}
+}
+
+func TestCreateWebhookRequest_RequiredNameField(t *testing.T) {
+	// Test that CreateWebhookRequest includes the name field
+	req := &CreateWebhookRequest{
+		Name:    "Required Webhook Name",
+		Dataset: "production",
+		URL:     "https://example.com/webhook",
+	}
+
+	// Verify that name field is present and accessible
+	if req.Name != "Required Webhook Name" {
+		t.Errorf("Expected name field to be 'Required Webhook Name', got '%s'", req.Name)
+	}
+
+	// Test JSON marshalling includes the name field
+	jsonData, err := json.Marshal(req)
+	if err != nil {
+		t.Fatalf("Failed to marshal CreateWebhookRequest: %v", err)
+	}
+
+	jsonStr := string(jsonData)
+	if !strings.Contains(jsonStr, `"name":"Required Webhook Name"`) {
+		t.Errorf("Expected JSON to contain name field, got: %s", jsonStr)
+	}
+}
+
+func TestUpdateWebhookRequest_NameField(t *testing.T) {
+	// Test that UpdateWebhookRequest includes the name field
+	req := &UpdateWebhookRequest{
+		Name: "Updated Webhook Name",
+		URL:  "https://example.com/updated-webhook",
+	}
+
+	// Verify that name field is present and accessible
+	if req.Name != "Updated Webhook Name" {
+		t.Errorf("Expected name field to be 'Updated Webhook Name', got '%s'", req.Name)
+	}
+
+	// Test JSON marshalling includes the name field
+	jsonData, err := json.Marshal(req)
+	if err != nil {
+		t.Fatalf("Failed to marshal UpdateWebhookRequest: %v", err)
+	}
+
+	jsonStr := string(jsonData)
+	if !strings.Contains(jsonStr, `"name":"Updated Webhook Name"`) {
+		t.Errorf("Expected JSON to contain name field, got: %s", jsonStr)
 	}
 }

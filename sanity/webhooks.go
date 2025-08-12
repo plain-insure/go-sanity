@@ -32,6 +32,9 @@ type Webhook struct {
 	// ProjectId is the identifier of the project this webhook belongs to.
 	ProjectId string `json:"projectId"`
 
+	// Name is the human-readable name for the webhook.
+	Name string `json:"name"`
+
 	// Dataset is the dataset this webhook is configured for.
 	Dataset string `json:"dataset"`
 
@@ -68,6 +71,9 @@ type Webhook struct {
 
 // CreateWebhookRequest represents the payload for creating a new webhook.
 type CreateWebhookRequest struct {
+	// Name is the human-readable name for the webhook.
+	Name string `json:"name"`
+
 	// Dataset is the dataset this webhook is configured for.
 	Dataset string `json:"dataset"`
 
@@ -95,6 +101,9 @@ type CreateWebhookRequest struct {
 
 // UpdateWebhookRequest represents the payload for updating an existing webhook.
 type UpdateWebhookRequest struct {
+	// Name is the human-readable name for the webhook.
+	Name string `json:"name,omitempty"`
+
 	// URL is the endpoint that will receive webhook notifications.
 	URL string `json:"url,omitempty"`
 
