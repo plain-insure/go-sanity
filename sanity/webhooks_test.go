@@ -24,6 +24,7 @@ func TestWebhooksService_List(t *testing.T) {
 			{
 				Id:            "webhook1",
 				ProjectId:     "test-project",
+				Type:          "document",
 				Name:          "Test Webhook",
 				Dataset:       "production",
 				URL:           "https://example.com/webhook",
@@ -85,6 +86,7 @@ func TestWebhooksService_Create(t *testing.T) {
 		webhook := Webhook{
 			Id:            "new-webhook",
 			ProjectId:     "test-project",
+			Type:          req.Type,
 			Name:          req.Name,
 			Dataset:       req.Dataset,
 			URL:           req.URL,
@@ -112,6 +114,7 @@ func TestWebhooksService_Create(t *testing.T) {
 	// Test the Create method
 	ctx := context.Background()
 	req := &CreateWebhookRequest{
+		Type:          "document",
 		Name:          "Test Webhook",
 		Dataset:       "production",
 		URL:           "https://example.com/webhook",
@@ -127,6 +130,9 @@ func TestWebhooksService_Create(t *testing.T) {
 
 	if webhook.Id != "new-webhook" {
 		t.Errorf("Expected webhook ID 'new-webhook', got '%s'", webhook.Id)
+	}
+	if webhook.Type != "document" {
+		t.Errorf("Expected webhook type 'document', got '%s'", webhook.Type)
 	}
 	if webhook.Name != "Test Webhook" {
 		t.Errorf("Expected webhook name 'Test Webhook', got '%s'", webhook.Name)
@@ -155,28 +161,47 @@ func TestClient_WebhooksService(t *testing.T) {
 	}
 }
 
-func TestCreateWebhookRequest_RequiredNameField(t *testing.T) {
-	// Test that CreateWebhookRequest includes the name field
+func TestCreateWebhookRequest_RequiredFields(t *testing.T) {
+	// Test that CreateWebhookRequest includes all required fields
 	req := &CreateWebhookRequest{
+		Type:    "document",
 		Name:    "Required Webhook Name",
 		Dataset: "production",
 		URL:     "https://example.com/webhook",
 	}
 
-	// Verify that name field is present and accessible
+	// Verify that required fields are present and accessible
+	if req.Type != "document" {
+		t.Errorf("Expected type field to be 'document', got '%s'", req.Type)
+	}
 	if req.Name != "Required Webhook Name" {
 		t.Errorf("Expected name field to be 'Required Webhook Name', got '%s'", req.Name)
 	}
+	if req.Dataset != "production" {
+		t.Errorf("Expected dataset field to be 'production', got '%s'", req.Dataset)
+	}
+	if req.URL != "https://example.com/webhook" {
+		t.Errorf("Expected url field to be 'https://example.com/webhook', got '%s'", req.URL)
+	}
 
-	// Test JSON marshalling includes the name field
+	// Test JSON marshalling includes all required fields
 	jsonData, err := json.Marshal(req)
 	if err != nil {
 		t.Fatalf("Failed to marshal CreateWebhookRequest: %v", err)
 	}
 
 	jsonStr := string(jsonData)
+	if !strings.Contains(jsonStr, `"type":"document"`) {
+		t.Errorf("Expected JSON to contain type field, got: %s", jsonStr)
+	}
 	if !strings.Contains(jsonStr, `"name":"Required Webhook Name"`) {
 		t.Errorf("Expected JSON to contain name field, got: %s", jsonStr)
+	}
+	if !strings.Contains(jsonStr, `"dataset":"production"`) {
+		t.Errorf("Expected JSON to contain dataset field, got: %s", jsonStr)
+	}
+	if !strings.Contains(jsonStr, `"url":"https://example.com/webhook"`) {
+		t.Errorf("Expected JSON to contain url field, got: %s", jsonStr)
 	}
 }
 
@@ -201,5 +226,97 @@ func TestUpdateWebhookRequest_NameField(t *testing.T) {
 	jsonStr := string(jsonData)
 	if !strings.Contains(jsonStr, `"name":"Updated Webhook Name"`) {
 		t.Errorf("Expected JSON to contain name field, got: %s", jsonStr)
+	}
+}
+
+func TestWebhookRule_Structure(t *testing.T) {
+	// Test that WebhookRule has the correct structure
+	rule := &WebhookRule{
+		On:         []string{"create", "update"},
+		Filter:     "_type == 'post'",
+		Projection: "{title, slug}",
+	}
+
+	// Verify fields are accessible
+	if len(rule.On) != 2 || rule.On[0] != "create" || rule.On[1] != "update" {
+		t.Errorf("Expected On field to be ['create', 'update'], got %v", rule.On)
+	}
+	if rule.Filter != "_type == 'post'" {
+		t.Errorf("Expected Filter field to be '_type == 'post'', got '%s'", rule.Filter)
+	}
+	if rule.Projection != "{title, slug}" {
+		t.Errorf("Expected Projection field to be '{title, slug}', got '%s'", rule.Projection)
+	}
+
+	// Test JSON marshalling
+	jsonData, err := json.Marshal(rule)
+	if err != nil {
+		t.Fatalf("Failed to marshal WebhookRule: %v", err)
+	}
+
+	jsonStr := string(jsonData)
+	if !strings.Contains(jsonStr, `"on":["create","update"]`) {
+		t.Errorf("Expected JSON to contain on field, got: %s", jsonStr)
+	}
+	if !strings.Contains(jsonStr, `"filter":"_type == 'post'"`) {
+		t.Errorf("Expected JSON to contain filter field, got: %s", jsonStr)
+	}
+	if !strings.Contains(jsonStr, `"projection":"{title, slug}"`) {
+		t.Errorf("Expected JSON to contain projection field, got: %s", jsonStr)
+	}
+}
+
+func TestCreateWebhookRequest_WithRule(t *testing.T) {
+	// Test CreateWebhookRequest with Rule
+	rule := &WebhookRule{
+		On:         []string{"create"},
+		Filter:     "_type == 'article'",
+		Projection: "{title, _id}",
+	}
+
+	req := &CreateWebhookRequest{
+		Type:             "document",
+		Name:             "Test Webhook with Rule",
+		Dataset:          "production",
+		URL:              "https://example.com/webhook",
+		Rule:             rule,
+		IsDisabledByUser: NewBool(false),
+	}
+
+	// Test JSON marshalling includes rule and isDisabledByUser
+	jsonData, err := json.Marshal(req)
+	if err != nil {
+		t.Fatalf("Failed to marshal CreateWebhookRequest: %v", err)
+	}
+
+	jsonStr := string(jsonData)
+	if !strings.Contains(jsonStr, `"rule":{`) {
+		t.Errorf("Expected JSON to contain rule field, got: %s", jsonStr)
+	}
+	if !strings.Contains(jsonStr, `"isDisabledByUser":false`) {
+		t.Errorf("Expected JSON to contain isDisabledByUser field, got: %s", jsonStr)
+	}
+}
+
+func TestUpdateWebhookRequest_WithoutIsDisabled(t *testing.T) {
+	// Test that UpdateWebhookRequest does not include IsDisabled field
+	req := &UpdateWebhookRequest{
+		Name:             "Updated Webhook",
+		IsDisabledByUser: NewBool(true),
+	}
+
+	// Test JSON marshalling
+	jsonData, err := json.Marshal(req)
+	if err != nil {
+		t.Fatalf("Failed to marshal UpdateWebhookRequest: %v", err)
+	}
+
+	jsonStr := string(jsonData)
+	// Should contain isDisabledByUser but not isDisabled
+	if !strings.Contains(jsonStr, `"isDisabledByUser":true`) {
+		t.Errorf("Expected JSON to contain isDisabledByUser field, got: %s", jsonStr)
+	}
+	if strings.Contains(jsonStr, `"isDisabled"`) {
+		t.Errorf("Expected JSON to NOT contain isDisabled field, got: %s", jsonStr)
 	}
 }

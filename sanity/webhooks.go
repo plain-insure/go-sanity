@@ -16,6 +16,18 @@ type WebhooksService struct {
 	testBaseURL string
 }
 
+// WebhookRule represents the rule configuration for a webhook.
+type WebhookRule struct {
+	// On specifies the events that trigger the webhook.
+	On []string `json:"on"`
+
+	// Filter is a GROQ filter expression to determine which documents trigger the webhook.
+	Filter string `json:"filter,omitempty"`
+
+	// Projection is a GROQ projection to determine what data to include in the webhook payload.
+	Projection string `json:"projection,omitempty"`
+}
+
 // getWebhookBaseURL returns the base URL for webhook operations.
 func (s *WebhooksService) getWebhookBaseURL() string {
 	if s.testBaseURL != "" {
@@ -31,6 +43,9 @@ type Webhook struct {
 
 	// ProjectId is the identifier of the project this webhook belongs to.
 	ProjectId string `json:"projectId"`
+
+	// Type is the type of the webhook.
+	Type string `json:"type"`
 
 	// Name is the human-readable name for the webhook.
 	Name string `json:"name"`
@@ -53,8 +68,8 @@ type Webhook struct {
 	// Headers are custom HTTP headers sent with webhook requests.
 	Headers map[string]string `json:"headers,omitempty"`
 
-	// Filter is a GROQ filter expression to determine which documents trigger the webhook.
-	Filter string `json:"filter,omitempty"`
+	// Rule defines the rule configuration for the webhook.
+	Rule *WebhookRule `json:"rule,omitempty"`
 
 	// CreatedAt is the time the webhook was created.
 	CreatedAt time.Time `json:"createdAt"`
@@ -71,6 +86,9 @@ type Webhook struct {
 
 // CreateWebhookRequest represents the payload for creating a new webhook.
 type CreateWebhookRequest struct {
+	// Type is the type of the webhook.
+	Type string `json:"type"`
+
 	// Name is the human-readable name for the webhook.
 	Name string `json:"name"`
 
@@ -92,15 +110,21 @@ type CreateWebhookRequest struct {
 	// Headers are custom HTTP headers sent with webhook requests.
 	Headers map[string]string `json:"headers,omitempty"`
 
-	// Filter is a GROQ filter expression to determine which documents trigger the webhook.
-	Filter string `json:"filter,omitempty"`
+	// Rule defines the rule configuration for the webhook.
+	Rule *WebhookRule `json:"rule,omitempty"`
 
 	// Secret is used for webhook signature verification.
 	Secret string `json:"secret,omitempty"`
+
+	// IsDisabledByUser indicates whether the webhook is disabled by the user.
+	IsDisabledByUser *bool `json:"isDisabledByUser,omitempty"`
 }
 
 // UpdateWebhookRequest represents the payload for updating an existing webhook.
 type UpdateWebhookRequest struct {
+	// Type is the type of the webhook.
+	Type string `json:"type,omitempty"`
+
 	// Name is the human-readable name for the webhook.
 	Name string `json:"name,omitempty"`
 
@@ -119,14 +143,14 @@ type UpdateWebhookRequest struct {
 	// Headers are custom HTTP headers sent with webhook requests.
 	Headers map[string]string `json:"headers,omitempty"`
 
-	// Filter is a GROQ filter expression to determine which documents trigger the webhook.
-	Filter string `json:"filter,omitempty"`
+	// Rule defines the rule configuration for the webhook.
+	Rule *WebhookRule `json:"rule,omitempty"`
 
 	// Secret is used for webhook signature verification.
 	Secret string `json:"secret,omitempty"`
 
-	// IsDisabled indicates whether the webhook is currently disabled.
-	IsDisabled *bool `json:"isDisabled,omitempty"`
+	// IsDisabledByUser indicates whether the webhook is disabled by the user.
+	IsDisabledByUser *bool `json:"isDisabledByUser,omitempty"`
 }
 
 // List fetches and returns all webhooks for the specified project.
@@ -181,4 +205,3 @@ func (s *WebhooksService) Delete(ctx context.Context, projectId, webhookId strin
 	err := do(ctx, s.client.client, url, http.MethodDelete, nil, &resp)
 	return resp.Deleted, err
 }
-
